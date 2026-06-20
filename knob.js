@@ -11,7 +11,10 @@ function arcOf(ctrl) {
 function valueToAngle(ctrl, value) {
   const { from, span } = arcOf(ctrl);
   if (ctrl.type === "knob") {
-    return from + ((value - ctrl.min) / (ctrl.max - ctrl.min)) * span;
+    const t = ctrl.reversed
+      ? (ctrl.max - value) / (ctrl.max - ctrl.min)
+      : (value - ctrl.min) / (ctrl.max - ctrl.min);
+    return from + t * span;
   }
   // knob-labeled: snap to named position
   // Full circle: divide by N so last option doesn't overlap first.
@@ -45,21 +48,38 @@ function buildKnobSVG(ctrl, initValue) {
 
   let ticks = "";
   if (ctrl.type === "knob") {
-    const total = (ctrl.max - ctrl.min) / ctrl.step;
-    for (let i = 0; i <= total; i++) {
-      const v       = ctrl.min + i * ctrl.step;
-      const isMajor = Number.isInteger(v);
-      const angle   = valueToAngle(ctrl, v);
-      const rad     = angle * Math.PI / 180;
-      const x1 = cx + Math.sin(rad) * (isMajor ? tickIn : tickInMn);
-      const y1 = cy - Math.cos(rad) * (isMajor ? tickIn : tickInMn);
-      const x2 = cx + Math.sin(rad) * tickOut;
-      const y2 = cy - Math.cos(rad) * tickOut;
-      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="${isMajor ? "scale-tick-major" : "scale-tick"}"/>`;
-      if (isMajor) {
+    if (ctrl.tickStep !== undefined) {
+      const total = Math.round((ctrl.max - ctrl.min) / ctrl.tickStep);
+      for (let i = 0; i <= total; i++) {
+        const v     = ctrl.reversed ? ctrl.max - i * ctrl.tickStep : ctrl.min + i * ctrl.tickStep;
+        const angle = valueToAngle(ctrl, v);
+        const rad   = angle * Math.PI / 180;
+        const x1 = cx + Math.sin(rad) * tickIn;
+        const y1 = cy - Math.cos(rad) * tickIn;
+        const x2 = cx + Math.sin(rad) * tickOut;
+        const y2 = cy - Math.cos(rad) * tickOut;
+        ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="scale-tick-major"/>`;
         const tx = cx + Math.sin(rad) * scaleR;
         const ty = cy - Math.cos(rad) * scaleR;
         ticks += `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" class="scale-text" font-size="${textSize}">${v}</text>`;
+      }
+    } else {
+      const total = (ctrl.max - ctrl.min) / ctrl.step;
+      for (let i = 0; i <= total; i++) {
+        const v       = ctrl.reversed ? ctrl.max - i * ctrl.step : ctrl.min + i * ctrl.step;
+        const isMajor = Number.isInteger(v);
+        const angle   = valueToAngle(ctrl, v);
+        const rad     = angle * Math.PI / 180;
+        const x1 = cx + Math.sin(rad) * (isMajor ? tickIn : tickInMn);
+        const y1 = cy - Math.cos(rad) * (isMajor ? tickIn : tickInMn);
+        const x2 = cx + Math.sin(rad) * tickOut;
+        const y2 = cy - Math.cos(rad) * tickOut;
+        ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="${isMajor ? "scale-tick-major" : "scale-tick"}"/>`;
+        if (isMajor) {
+          const tx = cx + Math.sin(rad) * scaleR;
+          const ty = cy - Math.cos(rad) * scaleR;
+          ticks += `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" class="scale-text" font-size="${textSize}">${v}</text>`;
+        }
       }
     }
   } else {
@@ -105,7 +125,33 @@ function buildKnobSVG(ctrl, initValue) {
 </svg>`;
 }
 
+function buildCounterHTML(ctrl, value) {
+  const numDigits = ctrl.digits || String(ctrl.max).length;
+  const padded = String(value).padStart(numDigits, '0');
+  let cells = '';
+  for (let i = 0; i < numDigits; i++) {
+    cells += `<div class="counter-digit" id="counter-digit-${ctrl.id}-${i}">${padded[i]}</div>`;
+  }
+  const orientation = ctrl.orientation || "horizontal";
+  return `<div class="counter-display counter-${orientation}" data-ctrl="${ctrl.id}">${cells}</div>`;
+}
+
 function setKnob(ctrl, value) {
+  if (ctrl.type === "counter") {
+    const numDigits = ctrl.digits || String(ctrl.max).length;
+    const padded = String(value).padStart(numDigits, '0');
+    for (let i = 0; i < numDigits; i++) {
+      const el = document.getElementById(`counter-digit-${ctrl.id}-${i}`);
+      if (el) el.textContent = padded[i];
+    }
+    currentValues[ctrl.id] = value;
+    const valEl = document.getElementById("knob-value-" + ctrl.id);
+    if (valEl) valEl.textContent = String(value);
+    const dispEl = document.getElementById("values-display-" + ctrl.id);
+    if (dispEl) dispEl.textContent = String(value);
+    return;
+  }
+
   const el = document.getElementById("knob-indicator-" + ctrl.id);
   if (!el) return;
   const cx    = ctrl.size === "large" ? 100 : 68;
@@ -117,11 +163,13 @@ function setKnob(ctrl, value) {
 
   const valEl = document.getElementById("knob-value-" + ctrl.id);
   if (valEl) valEl.textContent = String(value);
+  const dispEl = document.getElementById("values-display-" + ctrl.id);
+  if (dispEl) dispEl.textContent = String(value);
 }
 
 // ── Step knob by one increment (scroll wheel) ─
 function stepKnob(ctrl, dir) {
-  if (ctrl.type === "knob") {
+  if (ctrl.type === "knob" || ctrl.type === "counter") {
     const next    = currentValues[ctrl.id] + dir * ctrl.step;
     const stepped = Math.round(next / ctrl.step) * ctrl.step;
     setKnob(ctrl, Math.max(ctrl.min, Math.min(ctrl.max, stepped)));
@@ -149,7 +197,7 @@ function startDrag(e, ctrl) {
     const deltaY = startY - y;
     const fine   = moveE.shiftKey;
 
-    if (ctrl.type === "knob") {
+    if (ctrl.type === "knob" || ctrl.type === "counter") {
       const range   = ctrl.max - ctrl.min;
       const raw     = startValue + (deltaY / (fine ? 1000 : 200)) * range;
       const stepped = Math.round(raw / ctrl.step) * ctrl.step;
@@ -178,11 +226,13 @@ function startDrag(e, ctrl) {
 
 // ── Attach drag + scroll listeners to a knob ──
 function attachKnobListeners(ctrl) {
-  const svg = document.querySelector(`svg[data-ctrl="${ctrl.id}"]`);
-  if (!svg) return;
-  svg.addEventListener("mousedown",  e => startDrag(e, ctrl));
-  svg.addEventListener("touchstart", e => startDrag(e, ctrl), { passive: false });
-  svg.addEventListener("wheel", e => {
+  const el = ctrl.type === "counter"
+    ? document.querySelector(`.counter-display[data-ctrl="${ctrl.id}"]`)
+    : document.querySelector(`svg[data-ctrl="${ctrl.id}"]`);
+  if (!el) return;
+  el.addEventListener("mousedown",  e => startDrag(e, ctrl));
+  el.addEventListener("touchstart", e => startDrag(e, ctrl), { passive: false });
+  el.addEventListener("wheel", e => {
     e.preventDefault();
     stepKnob(ctrl, e.deltaY < 0 ? 1 : -1);
   }, { passive: false });

@@ -166,6 +166,42 @@ body {
   font-size: 0.68rem;
 }
 
+/* ── Current-values readout panel ── */
+#device-values {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-width: fit-content;
+}
+.val-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 16px;
+  border-right: 1px solid var(--border);
+}
+.val-item:last-child { border-right: none; }
+.val-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.val-value {
+  font-family: 'Courier New', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
 /* ── Control column ── */
 .control-col {
   display: flex;
@@ -196,6 +232,34 @@ body {
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 .knob-box .control-label { font-size: 0.62rem; }
+
+/* ── Counter (odometer) control ── */
+.counter-display {
+  display: inline-flex;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  margin: 8px 0;
+}
+.counter-display:active { cursor: grabbing; }
+.counter-digit {
+  min-width: 1.8ch;
+  padding: 6px 6px;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: #111827;
+  color: #fbbf24;
+  border-right: 1px solid #374151;
+  transition: color 0.08s;
+}
+.counter-digit:last-child { border-right: none; }
+.counter-vertical { flex-direction: column; }
+.counter-vertical .counter-digit { border-right: none; border-bottom: 1px solid #374151; }
+.counter-vertical .counter-digit:last-child { border-bottom: none; }
 
 /* ── Live value readout ── */
 .knob-value {
@@ -494,6 +558,32 @@ body {
 #add-preset-btn:hover  { background: var(--accent-hover); }
 #add-preset-btn:active { transform: scale(0.97); }
 
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-ghost:hover  { border-color: var(--accent); color: var(--accent); }
+.btn-ghost:active { transform: scale(0.97); }
+
+.preset-io-row {
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 /* ── Toast notification ── */
 #toast {
   position: fixed;
@@ -512,6 +602,9 @@ body {
 #toast.visible         { transform: translateY(0); opacity: 1; }
 #toast.success         { background: #22c55e; color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
 #toast.error           { background: var(--danger); color: #fff; box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
+
+/* ── Mobile-only elements (hidden by default) ── */
+#mobile-toolbar, #mobile-backdrop, #drawer-close-btn { display: none; }
 
 /* ── Tablet (<960px): stack layout ── */
 @media (max-width: 959px) {
@@ -549,6 +642,99 @@ body {
   #preset-mod-bar { flex-direction: column; align-items: flex-start; gap: 6px; }
   #preset-mod-bar.visible { max-height: 76px; padding: 8px 14px; }
   .mod-actions { width: 100%; justify-content: flex-end; }
+
+  /* ── Right panel → fixed bottom drawer ── */
+  #right-panel {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 56px;
+    max-height: 70vh;
+    z-index: 100;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    transform: translateY(110%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 0;
+    overflow: hidden;
+  }
+  #right-panel.drawer-open { transform: translateY(0); }
+
+  /* Tab bar inside drawer */
+  #tab-bar {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 0 4px;
+    overflow: hidden;
+  }
+  #drawer-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--text-subtle);
+    cursor: pointer;
+    padding: 0 12px;
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+  #drawer-close-btn:hover { color: var(--text); }
+  .tab-pane.active { max-height: calc(70vh - 44px); overflow-y: auto; }
+
+  /* ── Bottom toolbar ── */
+  #mobile-toolbar {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 101;
+  }
+  .mobile-tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--text-subtle);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 6px 4px;
+    min-height: 44px;
+    position: relative;
+    transition: color 0.15s;
+  }
+  .mobile-tab-btn.active { color: var(--accent); }
+  .mobile-tab-btn.has-badge::after {
+    content: '';
+    position: absolute;
+    top: 7px; right: calc(50% - 14px);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ── Backdrop ── */
+  #mobile-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 99;
+  }
+  #mobile-backdrop.visible { display: block; }
+
+  /* Push device content above toolbar */
+  #device-face-wrap { padding-bottom: 68px; }
 }
 
 /* ── Phone (<480px): wrap knobs to two rows, safe areas ── */
@@ -562,7 +748,13 @@ body {
   #right-panel {
     padding-bottom: env(safe-area-inset-bottom);
     min-height: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom));
   }
+  #mobile-toolbar {
+    height: calc(56px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #device-face-wrap { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
   #add-preset-form {
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
@@ -594,9 +786,59 @@ body {
 
   /* Full-width save button for easier tapping */
   #add-preset-btn { width: 100%; justify-content: center; }
+  .btn-ghost { flex: 1; justify-content: center; min-height: 44px; }
 
   /* Touch targets: ensure buttons are ≥44px tall */
   .tab-btn { min-height: 44px; }
   #add-preset-btn { min-height: 44px; }
   .del-btn { min-height: 36px; min-width: 44px; }
 }
+
+/* ── Help tab ── */
+.help-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+.help-section { display: flex; flex-direction: column; gap: 8px; }
+.help-heading {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin: 0;
+}
+.help-block {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.help-platform {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.help-content ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.help-content li {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.help-content strong { color: var(--text); }

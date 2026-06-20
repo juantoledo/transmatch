@@ -83,14 +83,67 @@ function initTabs() {
   });
 }
 
+// ── Mobile drawer (≤599px) ───────────────────
+function initMobileDrawer() {
+  const panel    = document.getElementById("right-panel");
+  const backdrop = document.getElementById("mobile-backdrop");
+
+  function openDrawer(tab) {
+    activateTab(tab);
+    panel.classList.add("drawer-open");
+    backdrop.classList.add("visible");
+    document.querySelectorAll(".mobile-tab-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.tab === tab));
+  }
+
+  function closeDrawer() {
+    panel.classList.remove("drawer-open");
+    backdrop.classList.remove("visible");
+    document.querySelectorAll(".mobile-tab-btn").forEach(b => b.classList.remove("active"));
+  }
+
+  document.querySelectorAll(".mobile-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const isOpen    = panel.classList.contains("drawer-open");
+      const isSameTab = document.getElementById("tab-" + btn.dataset.tab)?.classList.contains("active");
+      (isOpen && isSameTab) ? closeDrawer() : openDrawer(btn.dataset.tab);
+    });
+  });
+
+  document.getElementById("drawer-close-btn")?.addEventListener("click", closeDrawer);
+  backdrop.addEventListener("click", closeDrawer);
+}
+
+// ── Session persistence ───────────────────────
+const _SESSION_KEY = "transmatch_session";
+
+function saveSession() {
+  try {
+    localStorage.setItem(_SESSION_KEY, JSON.stringify({
+      model:  currentModel,
+      values: Object.assign({}, currentValues)
+    }));
+  } catch {}
+}
+
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(_SESSION_KEY)) || {}; }
+  catch { return {}; }
+}
+
 // ── Dirty-state detection ─────────────────────
 function checkDirty() {
+  saveSession();
+
   const bar = document.getElementById("preset-mod-bar");
   if (!bar || !_loadedPresetValues) return;
 
   const dirty = tunerDB[currentModel].controls.some(ctrl =>
     String(currentValues[ctrl.id]) !== String(_loadedPresetValues[ctrl.id])
   );
+
+  const mobileBtn = document.querySelector('.mobile-tab-btn[data-tab="presets"]');
+  if (mobileBtn) mobileBtn.classList.toggle("has-badge", dirty);
 
   if (dirty) {
     document.getElementById("mod-preset-name").textContent = _loadedPresetLabel;
@@ -146,7 +199,7 @@ function loadPreset(preset, rowEl, source, idx) {
   _loadedPresetSource = source || null;
   _loadedPresetIdx    = idx !== undefined ? idx : null;
   _loadedPresetLabel  = source === "suggestions"
-    ? `${preset.freq} MHz`
+    ? (typeof preset.freq === "number" ? `${preset.freq} MHz` : preset.freq)
     : (preset.name || "Preset");
   checkDirty();
 }
@@ -169,7 +222,7 @@ function renderModel(modelName) {
   model.controls.forEach(ctrl => {
     const initVal = firstPreset[ctrl.id] !== undefined
       ? firstPreset[ctrl.id]
-      : (ctrl.type === "knob" ? ctrl.min : ctrl.options[0]);
+      : (ctrl.type === "knob" || ctrl.type === "counter" ? ctrl.min : ctrl.options[0]);
 
     currentValues[ctrl.id] = initVal;
 
@@ -178,7 +231,10 @@ function renderModel(modelName) {
 
     const valSpan = `<span class="knob-value" id="knob-value-${ctrl.id}">${initVal}</span>`;
 
-    if (ctrl.boxed) {
+    if (ctrl.type === "counter") {
+      const inner = `<div class="control-label">${ctrl.label}</div>${buildCounterHTML(ctrl, initVal)}${valSpan}`;
+      col.innerHTML = ctrl.boxed ? `<div class="knob-box">${inner}</div>` : inner;
+    } else if (ctrl.boxed) {
       col.innerHTML = `<div class="knob-box">
         <div class="control-label">${ctrl.label}</div>
         ${buildKnobSVG(ctrl, initVal)}
@@ -197,25 +253,52 @@ function renderModel(modelName) {
 
   renderSuggestions();
   renderUserPresets();
+  renderValuesPanel();
 
   const firstRow = document.querySelector("#suggestions-tbody tr");
   if (firstRow) firstRow.click();
 }
 
+// ── Current-values readout panel ─────────────
+function renderValuesPanel() {
+  const el = document.getElementById("device-values");
+  if (!el) return;
+  el.innerHTML = tunerDB[currentModel].controls.map(ctrl =>
+    `<div class="val-item">
+      <span class="val-label">${ctrl.label}</span>
+      <span class="val-value" id="values-display-${ctrl.id}">${currentValues[ctrl.id]}</span>
+    </div>`
+  ).join("");
+}
+
 // ── Bootstrap ────────────────────────────────
 function init() {
-  const sel = document.getElementById("model-select");
+  const sel     = document.getElementById("model-select");
+  const session = loadSession();
+
   Object.keys(tunerDB).forEach(name => {
     const opt = document.createElement("option");
     opt.value = opt.textContent = name;
     sel.appendChild(opt);
   });
+
+  if (session.model && tunerDB[session.model]) sel.value = session.model;
+
   sel.addEventListener("change", () => renderModel(sel.value));
   initTheme();
   initTabs();
+  initMobileDrawer();
   initHint();
   initModBar();
   renderModel(sel.value);
+
+  if (session.model === currentModel && session.values) {
+    tunerDB[currentModel].controls.forEach(ctrl => {
+      const v = session.values[ctrl.id];
+      if (v !== undefined) setKnob(ctrl, v);
+    });
+    checkDirty();
+  }
 }
 
 init();

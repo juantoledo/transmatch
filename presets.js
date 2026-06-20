@@ -43,7 +43,7 @@ function renderSuggestions() {
   const thead = document.getElementById("suggestions-thead-row");
   const tbody = document.getElementById("suggestions-tbody");
 
-  buildthead(thead, "MHz");
+  buildthead(thead, model.suggestionHeader || "MHz");
   tbody.innerHTML = "";
 
   (model.factorySuggestions || []).forEach(suggestion => {
@@ -128,6 +128,69 @@ function renderUserPresets() {
     tbody.appendChild(tr);
   });
 }
+
+// ── Export all presets ────────────────────────
+function exportPresets() {
+  const models = {};
+  Object.keys(tunerDB).forEach(model => {
+    const arr = loadCustom(model);
+    if (arr.length > 0) models[model] = arr;
+  });
+  if (Object.keys(models).length === 0) {
+    showToast("No presets to export", "error");
+    return;
+  }
+  const json = JSON.stringify({ version: 1, app: "transmatch", models }, null, 2);
+  const a    = Object.assign(document.createElement("a"), {
+    href:     URL.createObjectURL(new Blob([json], { type: "application/json" })),
+    download: "transmatch-presets.json"
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast("Presets exported");
+}
+
+// ── Import from file ──────────────────────────
+function importPresets(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.app !== "transmatch" || !data.models || typeof data.models !== "object") {
+        showToast("Not a valid Transmatch preset file", "error");
+        return;
+      }
+      let count = 0;
+      Object.entries(data.models).forEach(([model, incoming]) => {
+        if (!tunerDB[model] || !Array.isArray(incoming)) return;
+        const existing = loadCustom(model);
+        incoming.forEach(p => {
+          if (p && typeof p.name === "string" && !existing.some(x => x.name === p.name)) {
+            existing.push(p);
+            count++;
+          }
+        });
+        saveCustom(model, existing);
+      });
+      renderUserPresets();
+      showToast(count > 0
+        ? `Imported ${count} preset${count === 1 ? "" : "s"}`
+        : "No new presets found (all names already exist)");
+    } catch {
+      showToast("Could not read preset file", "error");
+    }
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById("export-presets-btn").addEventListener("click", exportPresets);
+document.getElementById("import-presets-btn").addEventListener("click", () => {
+  document.getElementById("import-file-input").value = "";
+  document.getElementById("import-file-input").click();
+});
+document.getElementById("import-file-input").addEventListener("change", e => {
+  if (e.target.files[0]) importPresets(e.target.files[0]);
+});
 
 // ── Add user preset ───────────────────────────
 document.getElementById("add-preset-btn").addEventListener("click", () => {

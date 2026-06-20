@@ -60,5 +60,36 @@ const tunerDB = {
       { freq: 24,   transmitter: 6,   antenna: 6,   inductor: "K" },
       { freq: 28,   transmitter: 7.5, antenna: 8,   inductor: "K" }
     ]
+  },
+
+  "Palstar AT2KD": {
+    suggestionHeader: "Band",
+    controls: [
+      {
+        id: "main", label: "MAIN",
+        type: "knob",
+        min: 0, max: 100, step: 1, tickStep: 10,
+        size: "large",
+        arcFrom: -90, arcTo: 90,
+        reversed: true
+      },
+      {
+        id: "inductor", label: "INDUCTOR",
+        type: "counter",
+        min: 30, max: 329, step: 1,
+        orientation: "vertical", digits: 5
+      }
+    ],
+    factorySuggestions: [
+      { freq: "160 M", main: 50, inductor: 32  },
+      { freq: "80 M",  main: 55, inductor: 183 },
+      { freq: "40 M",  main: 45, inductor: 239 },
+      { freq: "20 M",  main: 50, inductor: 264 },
+      { freq: "17 M",  main: 50, inductor: 267 },
+      { freq: "15 M",  main: 24, inductor: 268 },
+      { freq: "12 M",  main: 24, inductor: 271 },
+      { freq: "10 M",  main: 26, inductor: 274 },
+      { freq: "6 M",   main: 40, inductor: 265 }
+    ]
   }
 };
