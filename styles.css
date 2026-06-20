@@ -719,6 +719,9 @@ body {
   #header { padding: 8px 14px; }
   #header h1 { font-size: 0.75rem; }
   #device-face { gap: 14px; padding: 12px 14px; }
+  /* Clear nested scroll so page scrolls naturally; move hint above the knobs */
+  #device-face-wrap { overflow: visible; }
+  #knob-hint { order: -1; }
   .knob-svg[data-size="large"] { width: 130px; height: 130px; }
   .knob-svg[data-size="small"] { width: 90px;  height: 90px; }
   .tab-btn { font-size: 0.65rem; padding: 9px 8px; }
@@ -917,7 +920,6 @@ body {
   }
   #device-face-wrap {
     padding: 12px 8px;
-    overflow-x: hidden;   /* no more horizontal scroll needed */
   }
   .knob-svg[data-size="large"] { width: 120px; height: 120px; }
   .knob-svg[data-size="small"] { width: 80px;  height: 80px; }
