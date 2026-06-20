@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Transmatch Tuner Configurator</title>
+  <script>
+    (function(){
+      const s = localStorage.getItem("transmatch_theme");
+      const dark = s === "dark" || (s === null && matchMedia("(prefers-color-scheme:dark)").matches);
+      if (dark) document.documentElement.setAttribute("data-theme","dark");
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header id="header">
+  <h1>Transmatch Tuner Configurator</h1>
+  <div class="header-controls">
+    <button id="theme-toggle" aria-label="Toggle theme" title="Toggle light / dark"></button>
+    <select id="model-select"></select>
+  </div>
+</header>
+
+<div id="main">
+  <div id="device-face-wrap">
+    <div id="device-face"></div>
+    <div id="device-label"></div>
+    <div id="knob-hint">Drag &middot; Scroll wheel &middot; <kbd>Shift</kbd>+drag for fine control</div>
+  </div>
+
+  <div id="right-panel">
+    <div id="tab-bar">
+      <button class="tab-btn active" data-tab="presets">My Presets</button>
+      <button class="tab-btn" data-tab="suggestions">Factory Suggestions</button>
+    </div>
+
+    <div id="preset-mod-bar">
+      <span class="mod-label">&#9998; Modified: <strong id="mod-preset-name"></strong></span>
+      <div class="mod-actions">
+        <button id="mod-update-btn">Update</button>
+        <button id="mod-save-new-btn">Save as new</button>
+        <button id="mod-revert-btn">&#8635; Revert</button>
+      </div>
+    </div>
+
+    <div id="tab-suggestions" class="tab-pane">
+      <div id="suggestions-table-wrap">
+        <table id="suggestions-table">
+          <thead><tr id="suggestions-thead-row"></tr></thead>
+          <tbody id="suggestions-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-presets" class="tab-pane active">
+      <div id="presets-table-wrap">
+        <div id="presets-empty" class="empty-state">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="21" x2="12" y2="13"/>
+            <line x1="12" y1="21" x2="7"  y2="24"/>
+            <line x1="12" y1="21" x2="17" y2="24"/>
+            <circle cx="12" cy="13" r="0.5" fill="currentColor"/>
+            <path d="M8.5 10.5a5 5 0 0 1 7 0"/>
+            <path d="M5.5 7.5a10 10 0 0 1 13 0"/>
+            <path d="M2.5 4.5a14.5 14.5 0 0 1 19 0"/>
+          </svg>
+          <p>No presets saved yet</p>
+          <p class="empty-hint">Tune the knobs then click <strong>+ Save</strong></p>
+        </div>
+        <table id="presets-table" style="display:none">
+          <thead><tr id="presets-thead-row"></tr></thead>
+          <tbody id="presets-tbody"></tbody>
+        </table>
+      </div>
+      <div id="add-preset-form">
+        <label>SAVE CURRENT SETTINGS</label>
+        <input id="preset-name-input" type="text" placeholder="Preset name…">
+        <input id="preset-antenna-input" type="text" placeholder="Antenna model…" list="antenna-models-list" autocomplete="off">
+        <datalist id="antenna-models-list"></datalist>
+        <div class="form-row form-row-end">
+          <button id="add-preset-btn">+ Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script src="knob.js"></script>
+<script src="presets.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
