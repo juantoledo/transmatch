@@ -4,17 +4,19 @@ let currentValues   = {};
 let activePresetRow = null;
 
 // Dirty-state tracking — set by loadPreset, read by checkDirty
-let _loadedPresetValues = null;
-let _loadedPresetSource = null;
-let _loadedPresetIdx    = null;
-let _loadedPresetLabel  = null;
+let _loadedPresetValues  = null;
+let _loadedPresetSource  = null;
+let _loadedPresetIdx     = null;
+let _loadedPresetLabel   = null;
+let _loadedPresetAntenna = null;
 
 function clearActiveRow() {
   if (activePresetRow) { activePresetRow.classList.remove("active"); activePresetRow = null; }
-  _loadedPresetValues = null;
-  _loadedPresetSource = null;
-  _loadedPresetIdx    = null;
-  _loadedPresetLabel  = null;
+  _loadedPresetValues  = null;
+  _loadedPresetSource  = null;
+  _loadedPresetIdx     = null;
+  _loadedPresetLabel   = null;
+  _loadedPresetAntenna = null;
   const bar = document.getElementById("preset-mod-bar");
   if (bar) bar.classList.remove("visible");
 }
@@ -132,15 +134,20 @@ function loadSession() {
 }
 
 // ── Dirty-state detection ─────────────────────
+function isDirty() {
+  if (!_loadedPresetValues) return false;
+  return tunerDB[currentModel].controls.some(ctrl =>
+    String(currentValues[ctrl.id]) !== String(_loadedPresetValues[ctrl.id])
+  );
+}
+
 function checkDirty() {
   saveSession();
 
   const bar = document.getElementById("preset-mod-bar");
   if (!bar || !_loadedPresetValues) return;
 
-  const dirty = tunerDB[currentModel].controls.some(ctrl =>
-    String(currentValues[ctrl.id]) !== String(_loadedPresetValues[ctrl.id])
-  );
+  const dirty = isDirty();
 
   const mobileBtn = document.querySelector('.mobile-tab-btn[data-tab="presets"]');
   if (mobileBtn) mobileBtn.classList.toggle("has-badge", dirty);
@@ -172,6 +179,7 @@ function initModBar() {
 
   document.getElementById("mod-save-new-btn").addEventListener("click", () => {
     activateTab("presets");
+    expandPresetForm();
     const inp = document.getElementById("preset-name-input");
     inp.value = _loadedPresetSource === "presets"
       ? `${_loadedPresetLabel} (copy)`
@@ -198,10 +206,20 @@ function loadPreset(preset, rowEl, source, idx) {
   _loadedPresetValues = Object.assign({}, currentValues);
   _loadedPresetSource = source || null;
   _loadedPresetIdx    = idx !== undefined ? idx : null;
-  _loadedPresetLabel  = source === "suggestions"
+  _loadedPresetLabel   = source === "suggestions"
     ? (typeof preset.freq === "number" ? `${preset.freq} MHz` : preset.freq)
     : (preset.name || "Preset");
+  _loadedPresetAntenna = preset.antennaModel || null;
   checkDirty();
+  renderValuesPanel();
+
+  // Close mobile drawer after loading
+  const panel = document.getElementById("right-panel");
+  if (panel && panel.classList.contains("drawer-open")) {
+    panel.classList.remove("drawer-open");
+    document.getElementById("mobile-backdrop")?.classList.remove("visible");
+    document.querySelectorAll(".mobile-tab-btn").forEach(b => b.classList.remove("active"));
+  }
 }
 
 // ── Render the device face for a model ───────
@@ -254,16 +272,29 @@ function renderModel(modelName) {
   renderSuggestions();
   renderUserPresets();
   renderValuesPanel();
-
-  const firstRow = document.querySelector("#suggestions-tbody tr");
-  if (firstRow) firstRow.click();
 }
 
 // ── Current-values readout panel ─────────────
 function renderValuesPanel() {
   const el = document.getElementById("device-values");
   if (!el) return;
-  el.innerHTML = tunerDB[currentModel].controls.map(ctrl =>
+
+  let context = "";
+  if (_loadedPresetLabel) {
+    const isLast = !_loadedPresetAntenna;
+    context += `<div class="val-item val-context${isLast ? " val-context-last" : ""}">
+      <span class="val-label">Preset</span>
+      <span class="val-context-value">${_loadedPresetLabel}</span>
+    </div>`;
+    if (_loadedPresetAntenna) {
+      context += `<div class="val-item val-context val-context-last">
+        <span class="val-label">Ant. Model</span>
+        <span class="val-context-value">${_loadedPresetAntenna}</span>
+      </div>`;
+    }
+  }
+
+  el.innerHTML = context + tunerDB[currentModel].controls.map(ctrl =>
     `<div class="val-item">
       <span class="val-label">${ctrl.label}</span>
       <span class="val-value" id="values-display-${ctrl.id}">${currentValues[ctrl.id]}</span>
@@ -276,6 +307,13 @@ function init() {
   const sel     = document.getElementById("model-select");
   const session = loadSession();
 
+  const placeholder = document.createElement("option");
+  placeholder.value    = "";
+  placeholder.textContent = "Choose Tuner Model";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  sel.appendChild(placeholder);
+
   Object.keys(tunerDB).forEach(name => {
     const opt = document.createElement("option");
     opt.value = opt.textContent = name;
@@ -284,20 +322,37 @@ function init() {
 
   if (session.model && tunerDB[session.model]) sel.value = session.model;
 
-  sel.addEventListener("change", () => renderModel(sel.value));
+  sel.addEventListener("change", () => {
+    if (isDirty()) {
+      const msg = `Switch to "${sel.value}"?\n\nYou have unsaved changes to preset "${_loadedPresetLabel}". They will be lost.`;
+      if (!window.confirm(msg)) { sel.value = currentModel; return; }
+    }
+    renderModel(sel.value);
+    const firstRow = document.querySelector("#suggestions-tbody tr");
+    if (firstRow) firstRow.click();
+  });
+
+  window.addEventListener("beforeunload", e => {
+    if (isDirty()) { e.preventDefault(); e.returnValue = ""; }
+  });
   initTheme();
   initTabs();
   initMobileDrawer();
+  initValueEntry();
   initHint();
   initModBar();
-  renderModel(sel.value);
+  if (sel.value) renderModel(sel.value);
 
   if (session.model === currentModel && session.values) {
     tunerDB[currentModel].controls.forEach(ctrl => {
       const v = session.values[ctrl.id];
       if (v !== undefined) setKnob(ctrl, v);
     });
+    clearActiveRow();
     checkDirty();
+  } else {
+    const firstRow = document.querySelector("#suggestions-tbody tr");
+    if (firstRow) firstRow.click();
   }
 }
 

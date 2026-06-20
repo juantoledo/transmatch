@@ -83,10 +83,14 @@ function renderUserPresets() {
 
   presets.forEach((preset, idx) => {
     const tr = document.createElement("tr");
+    const summary = model.controls
+      .map(c => `${c.label}: ${preset[c.id] !== undefined ? preset[c.id] : "—"}`)
+      .join(" · ");
     tr.innerHTML =
       `<td class="col-first">${preset.name}</td>` +
       `<td class="col-antenna">${preset.antennaModel || ""}</td>` +
-      model.controls.map(c => `<td>${preset[c.id] !== undefined ? preset[c.id] : "—"}</td>`).join("") +
+      model.controls.map(c => `<td class="col-ctrl">${preset[c.id] !== undefined ? preset[c.id] : "—"}</td>`).join("") +
+      `<td class="col-ctrl-summary">${summary}</td>` +
       `<td class="col-del"></td>`;
 
     const delCell = tr.querySelector(".col-del");
@@ -190,6 +194,19 @@ document.getElementById("import-presets-btn").addEventListener("click", () => {
 });
 document.getElementById("import-file-input").addEventListener("change", e => {
   if (e.target.files[0]) importPresets(e.target.files[0]);
+});
+
+// ── Preset form expand/collapse (mobile) ─────
+function expandPresetForm() {
+  document.getElementById("add-preset-form").classList.add("form-open");
+  const btn = document.getElementById("form-toggle-btn");
+  if (btn) btn.setAttribute("aria-expanded", "true");
+}
+
+document.getElementById("form-toggle-btn").addEventListener("click", () => {
+  const form   = document.getElementById("add-preset-form");
+  const isOpen = form.classList.toggle("form-open");
+  document.getElementById("form-toggle-btn").setAttribute("aria-expanded", String(isOpen));
 });
 
 // ── Add user preset ───────────────────────────

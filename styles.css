@@ -52,6 +52,11 @@ body {
 }
 
 /* ── Header ── */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 #header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -200,6 +205,19 @@ body {
   font-weight: 700;
   color: var(--accent);
   letter-spacing: 0.04em;
+}
+.val-context-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.val-context-last {
+  border-right: 2px solid var(--accent) !important;
 }
 
 /* ── Control column ── */
@@ -516,6 +534,11 @@ body {
   flex-shrink: 0;
   background: var(--surface);
 }
+.preset-form-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 #add-preset-form label {
   font-size: 0.65rem;
   font-weight: 700;
@@ -603,8 +626,71 @@ body {
 #toast.success         { background: #22c55e; color: #fff; box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
 #toast.error           { background: var(--danger); color: #fff; box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
 
+/* ── Value entry overlay ── */
+#value-entry {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#value-entry[hidden] { display: none; }
+#value-entry-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+#value-entry-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  padding: 16px 20px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1;
+}
+#value-entry-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+}
+#value-entry-input,
+#value-entry-select {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 1.4rem;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 8px 10px;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+#value-entry-input:focus,
+#value-entry-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+#value-entry-range {
+  font-size: 0.6rem;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
 /* ── Mobile-only elements (hidden by default) ── */
-#mobile-toolbar, #mobile-backdrop, #drawer-close-btn { display: none; }
+#mobile-toolbar, #mobile-backdrop, #drawer-close-btn, #form-toggle-btn { display: none; }
+.col-ctrl-summary { display: none; }
 
 /* ── Tablet (<960px): stack layout ── */
 @media (max-width: 959px) {
@@ -638,6 +724,66 @@ body {
   .tab-btn { font-size: 0.65rem; padding: 9px 8px; }
   #add-preset-form { padding: 12px; }
   #toast { bottom: 16px; right: 16px; left: 16px; text-align: center; }
+
+  /* ── Card-style preset rows ── */
+  #presets-table thead { display: none; }
+  #presets-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    padding: 10px 14px;
+    gap: 1px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  #presets-table td { display: block; padding: 0; border: none; white-space: normal; }
+  #presets-table .col-first {
+    grid-column: 1; grid-row: 1;
+    font-size: 0.92rem; font-weight: 700; color: var(--text);
+  }
+  #presets-table .col-antenna { display: none; }
+  #presets-table .col-ctrl    { display: none; }
+  #presets-table .col-ctrl-summary {
+    display: block;
+    grid-column: 1; grid-row: 2;
+    font-size: 0.72rem;
+    color: var(--text-subtle);
+    font-family: 'Courier New', monospace;
+  }
+  #presets-table .col-del {
+    grid-column: 2; grid-row: 1 / 3;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+
+  /* ── Collapsible save form (mobile) ── */
+  #form-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 10px 0 2px;
+    text-align: left;
+    min-height: 44px;
+  }
+  #form-toggle-btn svg { transition: transform 0.2s ease; flex-shrink: 0; }
+  #add-preset-form.form-open #form-toggle-btn svg { transform: rotate(180deg); }
+  #preset-form-fields {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s ease;
+    overflow: hidden;
+  }
+  #preset-form-fields > * { min-height: 0; }
+  #add-preset-form.form-open #preset-form-fields { grid-template-rows: 1fr; }
+
   /* Mod bar: stack label and buttons vertically */
   #preset-mod-bar { flex-direction: column; align-items: flex-start; gap: 6px; }
   #preset-mod-bar.visible { max-height: 76px; padding: 8px 14px; }
@@ -759,9 +905,8 @@ body {
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 
-  /* Hide long title — header only shows theme toggle + model select */
+  /* Hide long title on phones — icon remains as brand mark */
   #header h1 { display: none; }
-  #header { justify-content: flex-end; }
 
   /* Wrap knobs: Row 1 = TRANSMITTER + ANTENNA, Row 2 = INDUCTOR centred */
   #device-face {

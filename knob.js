@@ -1,3 +1,5 @@
+let _valueEntryCtrl = null;
+
 // arcFrom/arcTo define the sweep. When omitted the knob is a full 360° circle.
 // startAt sets where the arc begins when arcFrom is not specified (default 0 = 12 o'clock).
 function arcOf(ctrl) {
@@ -236,4 +238,94 @@ function attachKnobListeners(ctrl) {
     e.preventDefault();
     stepKnob(ctrl, e.deltaY < 0 ? 1 : -1);
   }, { passive: false });
+
+  // Double-click (desktop)
+  el.addEventListener("dblclick", e => { e.preventDefault(); openValueEntry(ctrl); });
+
+  // Double-tap (mobile — two touchend within 300ms)
+  let _lastTap = 0;
+  el.addEventListener("touchend", e => {
+    const now = Date.now();
+    if (now - _lastTap < 300) { e.preventDefault(); openValueEntry(ctrl); }
+    _lastTap = now;
+  });
+}
+
+// ── Direct value entry (double-click / double-tap) ──
+function openValueEntry(ctrl) {
+  const overlay = document.getElementById("value-entry");
+  const input   = document.getElementById("value-entry-input");
+  const select  = document.getElementById("value-entry-select");
+  const range   = document.getElementById("value-entry-range");
+
+  document.getElementById("value-entry-label").textContent = ctrl.label;
+  _valueEntryCtrl = ctrl;
+
+  if (ctrl.type === "knob-labeled") {
+    input.hidden  = true;
+    range.hidden  = true;
+    select.hidden = false;
+    select.innerHTML = ctrl.options.map(o =>
+      `<option value="${o}"${o === String(currentValues[ctrl.id]) ? " selected" : ""}>${o}</option>`
+    ).join("");
+    overlay.hidden = false;
+    select.focus();
+  } else {
+    select.hidden = true;
+    input.hidden  = false;
+    range.hidden  = false;
+    input.min     = ctrl.min;
+    input.max     = ctrl.max;
+    input.step    = ctrl.step;
+    input.value   = currentValues[ctrl.id];
+    range.textContent = `Range: ${ctrl.min} – ${ctrl.max}`;
+    overlay.hidden = false;
+    input.focus();
+    input.select();
+  }
+}
+
+function closeValueEntry(apply) {
+  const overlay = document.getElementById("value-entry");
+  const ctrl    = _valueEntryCtrl;
+  _valueEntryCtrl = null;
+  overlay.hidden  = true;
+
+  if (!apply || !ctrl) return;
+
+  if (ctrl.type === "knob-labeled") {
+    const val = document.getElementById("value-entry-select").value;
+    if (ctrl.options.includes(val)) { setKnob(ctrl, val); checkDirty(); }
+  } else {
+    const raw = parseFloat(document.getElementById("value-entry-input").value);
+    if (!isNaN(raw)) {
+      const stepped = Math.round(raw / ctrl.step) * ctrl.step;
+      setKnob(ctrl, Math.max(ctrl.min, Math.min(ctrl.max, stepped)));
+      checkDirty();
+    }
+  }
+}
+
+function initValueEntry() {
+  const input  = document.getElementById("value-entry-input");
+  const select = document.getElementById("value-entry-select");
+
+  // mousedown on backdrop fires before input blur — cancel without applying
+  document.getElementById("value-entry-backdrop").addEventListener("mousedown", e => {
+    e.preventDefault();
+    closeValueEntry(false);
+  });
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter")  { e.preventDefault(); closeValueEntry(true); }
+    if (e.key === "Escape") closeValueEntry(false);
+  });
+  input.addEventListener("blur", () => {
+    if (!document.getElementById("value-entry").hidden) closeValueEntry(true);
+  });
+
+  select.addEventListener("change",  () => closeValueEntry(true));
+  select.addEventListener("keydown", e => {
+    if (e.key === "Escape") closeValueEntry(false);
+  });
 }

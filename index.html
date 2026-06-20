@@ -11,12 +11,22 @@
       if (dark) document.documentElement.setAttribute("data-theme","dark");
     })();
   </script>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <header id="header">
-  <h1>Transmatch Tuner Configurator</h1>
+  <div class="header-brand">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="9" stroke="#3b82f6" stroke-width="1.5"/>
+      <circle cx="10" cy="10" r="5.5" fill="currentColor" opacity="0.12"/>
+      <circle cx="10" cy="10" r="5.5" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <line x1="10" y1="5.5" x2="10" y2="8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" transform="rotate(-40 10 10)"/>
+      <circle cx="10" cy="10" r="1.5" fill="#3b82f6"/>
+    </svg>
+    <h1>Transmatch Tuner Configurator</h1>
+  </div>
   <div class="header-controls">
     <button id="theme-toggle" aria-label="Toggle theme" title="Toggle light / dark"></button>
     <select id="model-select"></select>
@@ -28,7 +38,7 @@
     <div id="device-face"></div>
     <div id="device-label"></div>
     <div id="device-values"></div>
-    <div id="knob-hint">Drag &middot; Scroll wheel &middot; <kbd>Shift</kbd>+drag for fine control</div>
+    <div id="knob-hint">Drag &middot; Scroll &middot; <kbd>Shift</kbd>+drag for fine control &middot; Double-click to enter value</div>
   </div>
 
   <div id="right-panel">
@@ -136,22 +146,30 @@
         </table>
       </div>
       <div id="add-preset-form">
-        <label>SAVE CURRENT SETTINGS</label>
-        <input id="preset-name-input" type="text" placeholder="Preset name…">
-        <input id="preset-antenna-input" type="text" placeholder="Antenna model…" list="antenna-models-list" autocomplete="off">
-        <datalist id="antenna-models-list"></datalist>
-        <div class="form-row form-row-end">
-          <button id="add-preset-btn">+ Save</button>
-        </div>
-        <div class="form-row preset-io-row">
-          <button id="export-presets-btn" class="btn-ghost">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Export
-          </button>
-          <button id="import-presets-btn" class="btn-ghost">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Import
-          </button>
+        <button id="form-toggle-btn" aria-expanded="false" aria-controls="preset-form-fields">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          Save current settings
+        </button>
+        <div id="preset-form-fields">
+          <div class="preset-form-inner">
+            <label>SAVE CURRENT SETTINGS</label>
+            <input id="preset-name-input" type="text" placeholder="Preset name…">
+            <input id="preset-antenna-input" type="text" placeholder="Antenna model…" list="antenna-models-list" autocomplete="off">
+            <datalist id="antenna-models-list"></datalist>
+            <div class="form-row form-row-end">
+              <button id="add-preset-btn">+ Save</button>
+            </div>
+            <div class="form-row preset-io-row">
+              <button id="export-presets-btn" class="btn-ghost">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Export
+              </button>
+              <button id="import-presets-btn" class="btn-ghost">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Import
+              </button>
+            </div>
+          </div>
         </div>
         <input type="file" id="import-file-input" accept=".json,application/json" hidden>
       </div>
@@ -176,6 +194,16 @@
   </button>
 </nav>
 <div id="mobile-backdrop"></div>
+
+<div id="value-entry" hidden>
+  <div id="value-entry-backdrop"></div>
+  <div id="value-entry-card">
+    <div id="value-entry-label"></div>
+    <input  id="value-entry-input"  type="number" autocomplete="off">
+    <select id="value-entry-select"></select>
+    <div    id="value-entry-range"></div>
+  </div>
+</div>
 
 <script src="data.js"></script>
 <script src="knob.js"></script>
